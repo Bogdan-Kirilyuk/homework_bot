@@ -23,18 +23,15 @@ HOMEWORK_STATUSES = {
     'rejected': 'Работа проверена, в ней нашлись ошибки.'
 }
 
-if not all(CONST_AUTH):
-    logging.critical(' Отсутствует обязательная переменная окружения')
-    exit()
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO)
 
 
-# if not all(CONSTANTS_AUTH):
-#     logging.critical(' Отсутствует обязательная переменная окружения')
-#     exit()
+if not all(CONST_AUTH):
+    logging.critical(' Отсутствует обязательная переменная окружения')
+    exit()
 
 
 class TheAnswerIsNot200Error(Exception):
