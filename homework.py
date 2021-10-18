@@ -9,10 +9,12 @@ from telegram import Bot
 load_dotenv()
 
 
-PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-CHAT_ID = os.getenv('CHAT_ID')
-CONSTANTS_AUTH = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, CHAT_ID]
+PRACTICUM_TOKEN = os.getenv(
+    'PRACTICUM_TOKEN', default="SUP3R-S3CR3T-K3Y-F0R-MY-PR0J3CT")
+TELEGRAM_TOKEN = os.getenv(
+    'TELEGRAM_TOKEN', default="SUP3R-S3CR3T-K3Y-F0R-MY-PR0J3CT")
+CHAT_ID = os.getenv('CHAT_ID', default="SUP3R-S3CR3T-K3Y-F0R-MY-PR0J3CT")
+CONST_AUTH = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, CHAT_ID]
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HOMEWORK_STATUSES = {
@@ -21,17 +23,18 @@ HOMEWORK_STATUSES = {
     'rejected': 'Работа проверена, в ней нашлись ошибки.'
 }
 
+if not all(CONST_AUTH):
+    logging.critical(' Отсутствует обязательная переменная окружения')
+    exit()
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO)
 
 
-if not all(CONSTANTS_AUTH):
-    logging.critical(' Отсутствует обязательная переменная окружения')
-    exit()
-
-
-BOT = Bot(token=TELEGRAM_TOKEN)
+# if not all(CONSTANTS_AUTH):
+#     logging.critical(' Отсутствует обязательная переменная окружения')
+#     exit()
 
 
 class TheAnswerIsNot200Error(Exception):
@@ -85,8 +88,7 @@ def parse_status(homework):
         return (
             f'Изменился статус проверки работы "{homework_name}". {verdict}')
     except KeyError as error:
-        message = logging.error(error)
-        send_message(BOT, message)
+        logging.error(error)
 
 
 def check_response(response):
@@ -98,25 +100,26 @@ def check_response(response):
     homework = homework[0]
     verdict = HOMEWORK_STATUSES.get(homework.get('status'))
     if verdict is None:
-        message = logging.error('Ошибка недокументированный статус')
-        send_message(BOT, message)
+        logging.error('Ошибка недокументированный статус')
+
         raise TheParseStatusIsVacuum('Ошибка - недокументированный статус')
     return homework
 
 
 def main():
     """Основная функция запуска бота."""
+    bot = Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time()) - 600
     while True:
         try:
             response = get_api_answer(ENDPOINT, current_timestamp)
             homework = check_response(response)
-            send_message(BOT, parse_status(homework))
+            send_message(bot, parse_status(homework))
             time.sleep(RETRY_TIME)
             current_timestamp = int(time.time()) - 600
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(BOT, message)
+            send_message(bot, message)
             logging.error(message)
             time.sleep(RETRY_TIME)
             current_timestamp = int(time.time()) - 600
