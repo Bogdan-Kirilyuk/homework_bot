@@ -11,10 +11,9 @@ load_dotenv()
 
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
-TELEGRAM_TOKEN = os.getenv(
-    'TELEGRAM_TOKEN', default="SUP3R-S3CR3T-K3Y-F0R-MY-PR0J3CT")
-CHAT_ID = os.getenv('CHAT_ID', default="SUP3R-S3CR3T-K3Y-F0R-MY-PR0J3CT")
-RETRY_TIME = 600
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+CHAT_ID = os.getenv('CHAT_ID')
+RETRY_TIME = 6
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HOMEWORK_STATUSES = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -51,15 +50,15 @@ def check_constant_auth():
     if not PRACTICUM_TOKEN:
         logging.critical(
             'Отсутствует обязательная переменная окружения PRACTICUM_TOKEN')
-        exit()
+        return True
     elif not TELEGRAM_TOKEN:
         logging.critical(
             'Отсутствует обязательная переменная окружения TELEGRAM_TOKEN')
-        exit()
+        return True
     elif not CHAT_ID:
         logging.critical(
             'Отсутствует обязательная переменная окружения CHAT_ID')
-        exit()
+        return True
 
 
 def send_message(bot, message):
@@ -75,6 +74,8 @@ def send_message(bot, message):
 def get_api_answer(url, current_timestamp):
     """Получение ответа с API яндекс.практикум."""
     headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+    if current_timestamp is None:
+        current_timestamp = int(time.time())
     payload = {'from_date': current_timestamp}
     try:
         response = requests.get(url, headers=headers, params=payload)
@@ -94,9 +95,12 @@ def parse_status(homework):
     status = homework.get('status')
     verdict = HOMEWORK_STATUSES.get(status)
     homework_name = homework.get('homework_name')
-    if (homework_name or status) is None:
+    if homework_name is None:
         raise TheResponseUnknownKey(
-            'Отсутствует ключ homework_name или status')
+            'Отсутствует ключ homework_name')
+    if status is None:
+        raise TheResponseUnknownKey(
+            'Отсутствует ключ status')
     return (
         f'Изменился статус проверки работы "{homework_name}". {verdict}')
 
@@ -104,10 +108,10 @@ def parse_status(homework):
 def check_response(response):
     """Проверка, что домашку взяли на ревью."""
     homework = response.get('homeworks')
-    if (homework is None) or (type(homework) != list):
+    if homework is None or not isinstance(homework, list):
         raise TheResponseUnknownKey(
             'Отсутствует ключ homeworks или homeworks не правильного типа')
-    if homework == []:
+    if not homework:
         return False
     homework = homework[0]
     status = homework.get('status')
@@ -118,16 +122,16 @@ def check_response(response):
 
 def main():
     """Основная функция запуска бота."""
-    check_constant_auth()
+    if check_constant_auth():
+        exit()
     bot = Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     send_error = True
     while True:
         try:
             response = get_api_answer(ENDPOINT, current_timestamp)
-            if check_response(response) is False:
+            if not check_response(response):
                 send_message(bot, 'Домашку не взяли на ревью')
-                time.sleep(RETRY_TIME)
             else:
                 homework = check_response(response)
                 message = parse_status(homework)
