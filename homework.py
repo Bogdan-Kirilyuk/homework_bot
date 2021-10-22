@@ -56,7 +56,10 @@ def check_constant_auth():
     elif not CHAT_ID:
         logging.critical(
             'Отсутствует обязательная переменная окружения CHAT_ID')
+    if not (PRACTICUM_TOKEN and TELEGRAM_TOKEN and CHAT_ID):
         return False
+    else:
+        return True
 
 
 def send_message(bot, message):
