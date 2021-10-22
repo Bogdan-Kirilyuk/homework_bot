@@ -13,7 +13,7 @@ load_dotenv()
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('CHAT_ID')
-RETRY_TIME = 600
+RETRY_TIME = 6
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HOMEWORK_STATUSES = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -129,19 +129,19 @@ def main():
             response = get_api_answer(ENDPOINT, current_timestamp)
             if not check_response(response):
                 send_message(bot, 'Домашку не взяли на ревью')
-                time.sleep(RETRY_TIME)
             else:
                 homework = check_response(response)
                 message = parse_status(homework)
                 send_message(bot, message)
                 current_timestamp = response.get('current_date')
-                time.sleep(RETRY_TIME)
+            time.sleep(RETRY_TIME)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             if send_error:
                 send_message(bot, message)
                 send_error = False
             logging.error(message)
+            time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
