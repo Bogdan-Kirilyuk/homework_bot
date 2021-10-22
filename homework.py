@@ -50,15 +50,13 @@ def check_constant_auth():
     if not PRACTICUM_TOKEN:
         logging.critical(
             'Отсутствует обязательная переменная окружения PRACTICUM_TOKEN')
-        return True
     elif not TELEGRAM_TOKEN:
         logging.critical(
             'Отсутствует обязательная переменная окружения TELEGRAM_TOKEN')
-        return True
     elif not CHAT_ID:
         logging.critical(
             'Отсутствует обязательная переменная окружения CHAT_ID')
-        return True
+        return False
 
 
 def send_message(bot, message):
@@ -74,8 +72,7 @@ def send_message(bot, message):
 def get_api_answer(url, current_timestamp):
     """Получение ответа с API яндекс.практикум."""
     headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-    if current_timestamp is None:
-        current_timestamp = int(time.time())
+    current_timestamp = current_timestamp or int(time.time())
     payload = {'from_date': current_timestamp}
     try:
         response = requests.get(url, headers=headers, params=payload)
@@ -122,7 +119,7 @@ def check_response(response):
 
 def main():
     """Основная функция запуска бота."""
-    if check_constant_auth():
+    if not check_constant_auth():
         exit()
     bot = Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
@@ -138,6 +135,7 @@ def main():
                 message = parse_status(homework)
                 send_message(bot, message)
                 current_timestamp = response.get('current_date')
+                time.sleep(RETRY_TIME)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             if send_error:
