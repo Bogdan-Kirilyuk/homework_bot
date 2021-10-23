@@ -47,23 +47,20 @@ class TheResponseUnknownKey(Exception):
 
 def check_constant_auth():
     """Проверка наличия обязательных переменных для работы бота."""
-    critical = True
+    is_critical = True
     if not PRACTICUM_TOKEN:
-        critical = False
+        is_critical = False
         logging.critical(
             'Отсутствует обязательная переменная окружения PRACTICUM_TOKEN')
     elif not TELEGRAM_TOKEN:
-        critical = False
+        is_critical = False
         logging.critical(
             'Отсутствует обязательная переменная окружения TELEGRAM_TOKEN')
     elif not CHAT_ID:
-        critical = False
+        is_critical = False
         logging.critical(
             'Отсутствует обязательная переменная окружения CHAT_ID')
-    if not critical:
-        return False
-    else:
-        return True
+    return is_critical
 
 
 def send_message(bot, message):
@@ -133,15 +130,16 @@ def main():
     send_error = True
     while True:
         try:
-            time.sleep(RETRY_TIME)
             response = get_api_answer(ENDPOINT, current_timestamp)
             if not check_response(response):
                 send_message(bot, 'Домашку не взяли на ревью')
+                current_timestamp = response.get('current_date')
             else:
                 homework = check_response(response)
                 message = parse_status(homework)
                 send_message(bot, message)
                 current_timestamp = response.get('current_date')
+            time.sleep(RETRY_TIME)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             if send_error:
